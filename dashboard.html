@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="My Dashboard" />
+<title>My Daily Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4ff; color: #1a1a2e; min-height: 100vh; }
+
+  .topbar { background: #534AB7; color: white; padding: 1rem 1.1rem 0.8rem; position: sticky; top: 0; z-index: 10; }
+  .topbar-row { display: flex; align-items: center; justify-content: space-between; }
+  .greeting { font-size: 20px; font-weight: 600; }
+  .datestr { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+  .today-score { text-align: right; }
+  .today-score-num { font-size: 28px; font-weight: 700; }
+  .today-score-lbl { font-size: 11px; opacity: 0.8; }
+
+  .nav { display: flex; gap: 0; background: white; border-bottom: 1px solid #eee; position: sticky; top: 72px; z-index: 9; overflow-x: auto; }
+  .nav-btn { flex: 1; padding: 10px 4px; font-size: 12px; font-weight: 600; border: none; background: transparent; cursor: pointer; color: #888; border-bottom: 3px solid transparent; white-space: nowrap; min-width: 60px; }
+  .nav-btn.active { color: #534AB7; border-bottom-color: #534AB7; }
+
+  .page { display: none; padding: 1rem; }
+  .page.active { display: block; }
+
+  .score-banner { background: #EEEDFE; border-radius: 14px; padding: 1rem 1.2rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 14px; }
+  .score-big { font-size: 36px; font-weight: 700; color: #534AB7; min-width: 64px; }
+  .score-msg { font-size: 14px; color: #3C3489; line-height: 1.5; }
+
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #888; margin: 1.2rem 0 0.5rem; }
+
+  .habit-card { background: white; border: 1.5px solid #e8e6ff; border-radius: 14px; padding: 0.9rem 1rem; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+  .habit-card:active { transform: scale(0.98); }
+  .habit-card.done { background: #e6f9f0; border-color: #2ECC71; }
+  .habit-emoji { font-size: 28px; flex-shrink: 0; }
+  .habit-info { flex: 1; min-width: 0; }
+  .habit-name { font-size: 15px; font-weight: 600; }
+  .habit-time { font-size: 12px; color: #888; margin-top: 2px; }
+  .streak-row { display: flex; gap: 4px; margin-top: 6px; }
+  .sdot { width: 9px; height: 9px; border-radius: 50%; background: #ddd; }
+  .sdot.lit { background: #F5A623; }
+  .check { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .habit-card.done .check { border-color: #2ECC71; }
+
+  .adhoc-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .adhoc-input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #ddd; font-size: 14px; font-family: inherit; background: white; }
+  .adhoc-input:focus { outline: none; border-color: #534AB7; }
+  .add-btn { padding: 10px 14px; border-radius: 10px; background: #534AB7; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .adhoc-item { display: flex; align-items: center; gap: 10px; background: white; border: 1.5px solid #eee; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .adhoc-item.done { opacity: 0.5; }
+  .adhoc-item.done .adhoc-text { text-decoration: line-through; }
+  .adhoc-text { font-size: 14px; flex: 1; }
+  .adhoc-del { font-size: 18px; color: #ccc; padding: 0 4px; }
+
+  .eval-card { background: white; border: 1.5px solid #e8e6ff; border-radius: 14px; padding: 0.9rem 1rem; margin-bottom: 0.6rem; }
+  .eval-q { font-size: 14px; font-weight: 500; margin-bottom: 0.6rem; line-height: 1.4; }
+  .eval-btns { display: flex; gap: 8px; }
+  .eval-btn { padding: 6px 18px; border-radius: 99px; font-size: 13px; font-weight: 600; border: 1.5px solid #ddd; background: transparent; cursor: pointer; color: #888; -webkit-tap-highlight-color: transparent; }
+  .eval-btn.yes { background: #e6f9f0; border-color: #2ECC71; color: #1B6B3A; }
+  .eval-btn.no { background: #fff0f0; border-color: #E74C3C; color: #8B1A1A; }
+
+  .week-score-row { display: flex; align-items: center; gap: 16px; margin: 1rem 0 1.5rem; }
+  .ring { width: 80px; height: 80px; border-radius: 50%; border: 6px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ring-num { font-size: 20px; font-weight: 700; color: #534AB7; }
+  .ring-lbl { font-size: 10px; color: #888; }
+  .pbar-wrap { flex: 1; }
+  .pbar-bg { background: #eee; border-radius: 99px; height: 10px; overflow: hidden; }
+  .pbar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; background: #534AB7; }
+  .pbar-msg { font-size: 12px; color: #888; margin-top: 6px; }
+
+  .lt-card { background: white; border: 1.5px solid #e8e6ff; border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: 0.9rem; }
+  .lt-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 0.8rem; }
+  .lt-emoji { font-size: 26px; flex-shrink: 0; }
+  .lt-title { font-size: 15px; font-weight: 600; }
+  .lt-desc { font-size: 12px; color: #888; margin-top: 3px; line-height: 1.5; }
+  .lt-pct-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+  .lt-slider { width: 100%; margin: 8px 0 4px; accent-color: #534AB7; }
+  .milestones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .ms { padding: 5px 12px; border-radius: 99px; font-size: 12px; border: 1.5px solid #ddd; color: #666; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: all 0.15s; }
+  .ms.hit { background: #e6f9f0; border-color: #2ECC71; color: #1B6B3A; }
+  .lt-note { width: 100%; padding: 8px 10px; border-radius: 10px; border: 1.5px solid #eee; font-size: 13px; font-family: inherit; margin-top: 10px; resize: none; background: #fafafa; color: #1a1a2e; }
+  .lt-note:focus { outline: none; border-color: #534AB7; }
+
+  .history-day { background: white; border: 1.5px solid #eee; border-radius: 12px; padding: 0.8rem 1rem; margin-bottom: 0.6rem; }
+  .history-date { font-size: 13px; font-weight: 600; color: #534AB7; margin-bottom: 6px; }
+  .history-habits { display: flex; gap: 8px; flex-wrap: wrap; }
+  .history-pill { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: #f0f0f0; color: #666; }
+  .history-pill.done { background: #e6f9f0; color: #1B6B3A; }
+
+  .empty-state { text-align: center; padding: 2rem 1rem; color: #aaa; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-row">
+    <div>
+      <div class="greeting" id="greeting">Hello! 👋</div>
+      <div class="datestr" id="datestr"></div>
+    </div>
+    <div class="today-score">
+      <div class="today-score-num" id="todayScoreNum">0%</div>
+      <div class="today-score-lbl">today</div>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showPage('today')">⚡ Today</button>
+  <button class="nav-btn" onclick="showPage('week')">📅 Week</button>
+  <button class="nav-btn" onclick="showPage('goals')">🌟 Goals</button>
+  <button class="nav-btn" onclick="showPage('history')">📖 History</button>
+</div>
+
+<!-- TODAY PAGE -->
+<div class="page active" id="page-today">
+  <div class="score-banner">
+    <div class="score-big" id="scoreBig">0%</div>
+    <div class="score-msg" id="scoreMsg">Tap a habit to get started! 🚀</div>
+  </div>
+
+  <div class="section-label">⚡ Daily Habits</div>
+
+  <div class="habit-card" id="hc0" onclick="toggleHabit(0)">
+    <div class="habit-emoji">🕉️</div>
+    <div class="habit-info">
+      <div class="habit-name">Spiritual Practice</div>
+      <div class="habit-time">1 hour · SEVA, meditation, study</div>
+      <div class="streak-row" id="sr0"></div>
+    </div>
+    <div class="check" id="ck0"></div>
+  </div>
+
+  <div class="habit-card" id="hc1" onclick="toggleHabit(1)">
+    <div class="habit-emoji">💡</div>
+    <div class="habit-info">
+      <div class="habit-name">Personal Projects</div>
+      <div class="habit-time">30 mins · LLM / Education thinking</div>
+      <div class="streak-row" id="sr1"></div>
+    </div>
+    <div class="check" id="ck1"></div>
+  </div>
+
+  <div class="habit-card" id="hc2" onclick="toggleHabit(2)">
+    <div class="habit-emoji">🧹</div>
+    <div class="habit-info">
+      <div class="habit-name">Chores & Admin</div>
+      <div class="habit-time">1 hour · cleaning, admin, ad hoc</div>
+      <div class="streak-row" id="sr2"></div>
+    </div>
+    <div class="check" id="ck2"></div>
+  </div>
+
+  <div class="section-label">📋 Ad Hoc Tasks</div>
+  <div class="adhoc-row">
+    <input class="adhoc-input" id="adhocInput" placeholder="Add a task for today..." />
+    <button class="add-btn" onclick="addAdhoc()">+ Add</button>
+  </div>
+  <div id="adhocList"></div>
+</div>
+
+<!-- WEEK PAGE -->
+<div class="page" id="page-week">
+
+  <div class="section-label">📅 Weekly Task</div>
+  <div class="habit-card" id="wc0" onclick="toggleWeekly()">
+    <div class="habit-emoji">🎬</div>
+    <div class="habit-info">
+      <div class="habit-name">Movie Night with Kids</div>
+      <div class="habit-time">Weekly · family time</div>
+    </div>
+    <div class="check" id="wck0"></div>
+  </div>
+
+  <div class="section-label">📊 Weekly Evaluation</div>
+  <div style="font-size:13px;color:#888;margin-bottom:0.8rem;">Tap YES or NO — your % updates live</div>
+  <div id="evalList"></div>
+
+  <div class="week-score-row">
+    <div class="ring" id="evalRing">
+      <div class="ring-num" id="evalPct">0%</div>
+      <div class="ring-lbl">week score</div>
+    </div>
+    <div class="pbar-wrap">
+      <div class="pbar-bg"><div class="pbar-fill" id="evalBar" style="width:0%"></div></div>
+      <div class="pbar-msg" id="evalMsg">Answer all 5 questions above</div>
+    </div>
+  </div>
+</div>
+
+<!-- GOALS PAGE -->
+<div class="page" id="page-goals">
+  <div style="font-size:13px;color:#888;margin-bottom:0.8rem;">Drag the slider · tap milestones · add notes</div>
+
+  <div class="lt-card">
+    <div class="lt-head">
+      <div class="lt-emoji">🙏</div>
+      <div>
+        <div class="lt-title">Spiritual Practice</div>
+        <div class="lt-desc">SEVA · Meditation · Study — building a daily foundation</div>
+      </div>
+    </div>
+    <div class="lt-pct-row"><span>Progress</span><span id="gp0">5%</span></div>
+    <div class="pbar-bg"><div class="pbar-fill" id="gb0" style="width:5%;background:#1D9E75;"></div></div>
+    <input type="range" class="lt-slider" min="0" max="100" value="5" step="1" id="gs0" oninput="updateGoal(0,this.value)" />
+    <div class="milestones" id="gm0"></div>
+    <textarea class="lt-note" id="gn0" rows="2" placeholder="Reflection or note..." oninput="saveGoalNote(0)"></textarea>
+  </div>
+
+  <div class="lt-card">
+    <div class="lt-head">
+      <div class="lt-emoji">🎭</div>
+      <div>
+        <div class="lt-title">Vancouver Fringe Festival Play</div>
+        <div class="lt-desc">2-person Shakespeare twist · target: Fringe 2026</div>
+      </div>
+    </div>
+    <div class="lt-pct-row"><span>Progress</span><span id="gp1">5%</span></div>
+    <div class="pbar-bg"><div class="pbar-fill" id="gb1" style="width:5%;background:#D4537E;"></div></div>
+    <input type="range" class="lt-slider" min="0" max="100" value="5" step="1" id="gs1" oninput="updateGoal(1,this.value)" />
+    <div class="milestones" id="gm1"></div>
+    <textarea class="lt-note" id="gn1" rows="2" placeholder="Latest creative spark or idea..." oninput="saveGoalNote(1)"></textarea>
+  </div>
+
+  <div class="lt-card">
+    <div class="lt-head">
+      <div class="lt-emoji">🪶</div>
+      <div>
+        <div class="lt-title">Teaching for Indigenous Communities</div>
+        <div class="lt-desc">Getting back to education · connection · contribution</div>
+      </div>
+    </div>
+    <div class="lt-pct-row"><span>Progress</span><span id="gp2">5%</span></div>
+    <div class="pbar-bg"><div class="pbar-fill" id="gb2" style="width:5%;background:#378ADD;"></div></div>
+    <input type="range" class="lt-slider" min="0" max="100" value="5" step="1" id="gs2" oninput="updateGoal(2,this.value)" />
+    <div class="milestones" id="gm2"></div>
+    <textarea class="lt-note" id="gn2" rows="2" placeholder="Steps taken, people connected..." oninput="saveGoalNote(2)"></textarea>
+  </div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div class="page" id="page-history">
+  <div style="font-size:13px;color:#888;margin-bottom:0.8rem;">Your habit history — last 30 days</div>
+  <div id="historyList"></div>
+</div>
+
+<script>
+const HABITS = ['Spiritual Practice','Personal Projects','Chores & Admin'];
+const HABIT_EMOJI = ['🕉️','💡','🧹'];
+const EVAL_QS = [
+  '🕉️ Did I spend time on spiritual practice and feel satisfied?',
+  '👨‍👧‍👦 Was I a good dad?',
+  '💭 Do I understand my value system even 0.01% better?',
+  '🎨 Did I make any creative headway?',
+  '🤝 Was I able to meet Harshita and discuss my hiccups and progress?'
+];
+const MILESTONES = [
+  ['Started daily routine','Consistent 7 days','Consistent 30 days','Led a SEVA session','Deep study complete','Felt truly transformed'],
+  ['Chose the story','Wrote Act 1 outline','Found co-creator','First full draft','Workshop reading','Submitted to Fringe'],
+  ['Reconnected with network','Found community partner','Designed first lesson','Ran a pilot session','Ongoing programme','Full curriculum done']
+];
+const GOAL_COLORS = ['#1D9E75','#D4537E','#378ADD'];
+
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function weekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(),0,1);
+  const week = Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+  return d.getFullYear()+'-W'+String(week).padStart(2,'0');
+}
+
+function load(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+
+function getTodayData() { return load('day-'+todayKey(), {habits:[false,false,false], adhoc:[]}); }
+function saveTodayData(d) { save('day-'+todayKey(), d); }
+function getWeekData() { return load('week-'+weekKey(), {movieNight:false, eval:[null,null,null,null,null]}); }
+function saveWeekData(d) { save('week-'+weekKey(), d); }
+function getGoalData() { return load('goals', [{pct:5,milestones:[],note:''},{pct:5,milestones:[],note:''},{pct:5,milestones:[],note:''}]); }
+function saveGoalData(d) { save('goals', d); }
+
+let today = getTodayData();
+let week = getWeekData();
+let goals = getGoalData();
+
+function initDate() {
+  const d = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const hr = d.getHours();
+  document.getElementById('greeting').textContent = (hr<12?'Good morning! 🌅':hr<17?'Good afternoon! ☀️':'Good evening! 🌙');
+  document.getElementById('datestr').textContent = days[d.getDay()]+', '+d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear();
+}
+
+function updateScore() {
+  const done = today.habits.filter(Boolean).length;
+  const pct = Math.round((done/3)*100);
+  document.getElementById('todayScoreNum').textContent = pct+'%';
+  document.getElementById('scoreBig').textContent = pct+'%';
+  const msgs = {0:'Tap a habit to get started! 🚀',33:'One down! Keep going 🌱',66:'Two done! On fire 🔥',100:'FULL SCORE! You crushed it! 🏆🎉'};
+  document.getElementById('scoreMsg').textContent = msgs[pct]||msgs[0];
+}
+
+function renderStreaks() {
+  for (let i=0;i<3;i++) {
+    const el = document.getElementById('sr'+i);
+    const dots = [];
+    for (let d=6;d>=0;d--) {
+      const date = new Date(); date.setDate(date.getDate()-d);
+      const key = 'day-'+date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+      const dayData = load(key, {habits:[false,false,false]});
+      dots.push(`<div class="sdot ${dayData.habits[i]?'lit':''}"></div>`);
+    }
+    el.innerHTML = dots.join('');
+  }
+}
+
+function renderHabits() {
+  for (let i=0;i<3;i++) {
+    const done = today.habits[i];
+    document.getElementById('hc'+i).className = 'habit-card'+(done?' done':'');
+    document.getElementById('ck'+i).textContent = done?'✅':'';
+  }
+  updateScore();
+}
+
+function toggleHabit(i) {
+  today.habits[i] = !today.habits[i];
+  saveTodayData(today);
+  renderHabits();
+  renderStreaks();
+  renderHistory();
+}
+
+function renderAdhoc() {
+  const list = document.getElementById('adhocList');
+  if (!today.adhoc.length) { list.innerHTML = '<div class="empty-state">No tasks yet — add one above ☝️</div>'; return; }
+  list.innerHTML = today.adhoc.map((item,i)=>`
+    <div class="adhoc-item ${item.done?'done':''}" onclick="toggleAdhoc(${i})">
+      <span style="font-size:20px;">${item.done?'✅':'⬜'}</span>
+      <span class="adhoc-text">${item.text}</span>
+      <span class="adhoc-del" onclick="event.stopPropagation();deleteAdhoc(${i})">✕</span>
+    </div>`).join('');
+}
+
+function addAdhoc() {
+  const inp = document.getElementById('adhocInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  today.adhoc.push({text, done:false});
+  saveTodayData(today);
+  inp.value = '';
+  renderAdhoc();
+}
+
+function toggleAdhoc(i) {
+  today.adhoc[i].done = !today.adhoc[i].done;
+  saveTodayData(today);
+  renderAdhoc();
+}
+
+function deleteAdhoc(i) {
+  today.adhoc.splice(i,1);
+  saveTodayData(today);
+  renderAdhoc();
+}
+
+document.getElementById('adhocInput').addEventListener('keydown', e => { if(e.key==='Enter') addAdhoc(); });
+
+function renderWeekly() {
+  const done = week.movieNight;
+  document.getElementById('wc0').className = 'habit-card'+(done?' done':'');
+  document.getElementById('wck0').textContent = done?'✅':'';
+}
+
+function toggleWeekly() {
+  week.movieNight = !week.movieNight;
+  saveWeekData(week);
+  renderWeekly();
+}
+
+function renderEval() {
+  document.getElementById('evalList').innerHTML = EVAL_QS.map((q,i)=>`
+    <div class="eval-card">
+      <div class="eval-q">${q}</div>
+      <div class="eval-btns">
+        <button class="eval-btn ${week.eval[i]==='yes'?'yes':''}" onclick="setEval(${i},'yes')">✅ YES</button>
+        <button class="eval-btn ${week.eval[i]==='no'?'no':''}" onclick="setEval(${i},'no')">❌ NO</button>
+      </div>
+    </div>`).join('');
+  updateEvalScore();
+}
+
+function setEval(i, val) {
+  week.eval[i] = val;
+  saveWeekData(week);
+  renderEval();
+}
+
+function updateEvalScore() {
+  const yes = week.eval.filter(a=>a==='yes').length;
+  const pct = Math.round((yes/5)*100);
+  document.getElementById('evalPct').textContent = pct+'%';
+  document.getElementById('evalBar').style.width = pct+'%';
+  document.getElementById('evalRing').style.borderColor = pct>=80?'#2ECC71':pct>=60?'#F5A623':'#ddd';
+  const msgs = ['Answer all 5 questions above','Keep going...','You\'re doing well 🌱','Strong week! 💪','Outstanding! 🌟','PERFECT WEEK! 🏆'];
+  document.getElementById('evalMsg').textContent = msgs[Math.min(yes,5)];
+}
+
+function renderGoals() {
+  goals.forEach((g,i)=>{
+    document.getElementById('gp'+i).textContent = g.pct+'%';
+    document.getElementById('gb'+i).style.width = g.pct+'%';
+    document.getElementById('gs'+i).value = g.pct;
+    document.getElementById('gn'+i).value = g.note||'';
+    document.getElementById('gm'+i).innerHTML = MILESTONES[i].map((m,j)=>`
+      <div class="ms ${g.milestones.includes(j)?'hit':''}" onclick="toggleMilestone(${i},${j})">
+        ${g.milestones.includes(j)?'✅ ':''}${m}
+      </div>`).join('');
+  });
+}
+
+function updateGoal(i, val) {
+  goals[i].pct = parseInt(val);
+  document.getElementById('gp'+i).textContent = val+'%';
+  document.getElementById('gb'+i).style.width = val+'%';
+  saveGoalData(goals);
+}
+
+function toggleMilestone(gi, mi) {
+  const idx = goals[gi].milestones.indexOf(mi);
+  if (idx===-1) goals[gi].milestones.push(mi); else goals[gi].milestones.splice(idx,1);
+  saveGoalData(goals);
+  renderGoals();
+}
+
+function saveGoalNote(i) {
+  goals[i].note = document.getElementById('gn'+i).value;
+  saveGoalData(goals);
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const days = [];
+  for (let d=1; d<=30; d++) {
+    const date = new Date(); date.setDate(date.getDate()-d);
+    const key = 'day-'+date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+    const data = load(key, null);
+    if (data) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const ddays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const label = ddays[date.getDay()]+', '+date.getDate()+' '+months[date.getMonth()];
+      const done = data.habits.filter(Boolean).length;
+      const pct = Math.round((done/3)*100);
+      days.push(`<div class="history-day">
+        <div class="history-date">${label} — ${pct}%</div>
+        <div class="history-habits">
+          ${HABITS.map((h,i)=>`<div class="history-pill ${data.habits[i]?'done':''}">${HABIT_EMOJI[i]} ${h}</div>`).join('')}
+          ${data.adhoc&&data.adhoc.length?`<div class="history-pill">${data.adhoc.length} task${data.adhoc.length>1?'s':''}</div>`:''}
+        </div>
+      </div>`);
+    }
+  }
+  list.innerHTML = days.length ? days.join('') : '<div class="empty-state">No history yet — come back tomorrow! 📅</div>';
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if (name==='history') renderHistory();
+}
+
+initDate();
+renderHabits();
+renderStreaks();
+renderAdhoc();
+renderWeekly();
+renderEval();
+renderGoals();
+</script>
+</body>
+</html>
